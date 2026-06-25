@@ -33,10 +33,11 @@ public class CreateReservationHandler
         }
 
         // 2. Verificar que no haya solapamiento de horarios
+        // 2. Verificar que no haya solapamiento de horarios (usar UTC)
         bool haySolapamiento = await _reservationRepository.ExistsOverlapAsync(
             dto.ServiceId,
-            dto.StartDateTime,
-            dto.EndDateTime,
+            dto.StartDateTime.ToUniversalTime(),  // Convertir a UTC
+            dto.EndDateTime.ToUniversalTime(),    // Convertir a UTC
             excludeReservationId: null,
             cancellationToken);
 
@@ -45,15 +46,16 @@ public class CreateReservationHandler
             return Result<Reservation>.Failure("El horario solicitado ya está ocupado.");
         }
 
-        // 3. Crear la entidad de dominio
+        // 3. Crear la entidad de dominio (convertir a UTC)
         var reservation = new Reservation
         {
             ClientId = dto.ClientId,
             ServiceId = dto.ServiceId,
-            StartDateTime = dto.StartDateTime,
-            EndDateTime = dto.EndDateTime,
+            // Convertir a UTC antes de guardar
+            StartDateTime = dto.StartDateTime.ToUniversalTime(),
+            EndDateTime = dto.EndDateTime.ToUniversalTime(),
             Status = ReservationStatus.Pending,
-            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(15) // Expira en 15 minutos si no se paga
+            ExpiresAt = DateTimeOffset.UtcNow.AddMinutes(15)
         };
 
         // 4. Guardar en la base de datos
